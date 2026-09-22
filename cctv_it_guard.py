@@ -1044,9 +1044,33 @@ INDEX_HTML = r"""<!DOCTYPE html>
     .channel-box {
       border: 2px solid var(--border);
       border-radius: 10px;
-      padding: 14px;
+      padding: 14px 16px;
+      background: #FFFFFF;
+      box-shadow: 2px 2px 0px var(--border);
+      transition: all 0.2s ease;
+      margin-bottom: 12px;
+    }
+    .channel-box.ch-active {
+      border-left: 6px solid #22C55E;
+      background: #FAFCF8;
+    }
+    .channel-box.ch-muted {
+      border-left: 6px solid #94A3B8;
       background: #F8FAFC;
-      margin-bottom: 14px;
+      opacity: 0.85;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) minmax(380px, 1.4fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 900px) {
@@ -1240,98 +1264,123 @@ INDEX_HTML = r"""<!DOCTYPE html>
     <section id="tab-settings" class="tab-content">
       <div style="margin-bottom: 20px;">
         <h2>Pengaturan Multi-Kamera & NVR</h2>
-        <p style="color: var(--text-muted); font-size: 0.85rem;">Konfigurasi NVR Hikvision, pemetaan channel kamera, webhook Telegram, dan retensi</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Konfigurasi NVR Hikvision, pemetaan channel kamera, webhook Telegram, dan retensi disk</p>
       </div>
 
-      <form id="settingsForm" onsubmit="saveSettings(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-        
-        <!-- CARD 1: NVR & TELEGRAM -->
-        <div class="neo-card">
-          <h3 style="margin-bottom: 14px;">📹 Parameter NVR Hikvision</h3>
-          <div class="form-group">
-            <label class="form-label">IP Address NVR</label>
-            <input type="text" name="nvr_ip" class="form-input" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Username NVR</label>
-            <input type="text" name="nvr_user" class="form-input" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password NVR</label>
-            <input type="password" name="nvr_pass" class="form-input" required>
-          </div>
-
-          <h3 style="margin: 20px 0 14px 0;">🤖 Telegram Bot & Anti-Spam</h3>
-          <div class="form-group">
-            <label class="form-label">Bot Token Telegram</label>
-            <input type="text" name="telegram_token" class="form-input" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Target Chat / Group ID</label>
-            <input type="text" name="telegram_chat_id" class="form-input" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Status Notifikasi Global</label>
-            <select name="telegram_enabled" class="form-select">
-              <option value="true">🔔 Aktif (Kirim Foto & Pesan)</option>
-              <option value="false">🔕 Senyap / Muted (Simpan Lokal Saja)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Jeda Cooldown Anti-Spam: <span id="cooldownValBadge" class="neo-badge badge-yellow">15 Detik</span></label>
-            <input type="range" name="cooldown_seconds" min="5" max="180" value="15" style="width: 100%;" oninput="document.getElementById('cooldownValBadge').innerText = this.value + ' Detik'">
-          </div>
-          <div class="form-group">
-            <label class="form-label">PIN Akses Web Panel (6 Digit)</label>
-            <input type="text" name="web_pin" class="form-input" maxlength="6" required>
-          </div>
-        </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-            <p style="font-size: 0.8rem; color: var(--text-muted);">Setel nama, lokasi, IP langsung, dan aktifkan/nonaktifkan alert per kamera.</p>
-            <div style="display: flex; gap: 8px;">
-              <button type="button" class="neo-btn neo-btn-purple" style="padding: 6px 12px; font-size: 0.8rem;" onclick="syncCamerasFromNvr()">🔄 Auto-Sync dari NVR</button>
-              <button type="button" class="neo-btn neo-btn-blue" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addNewChannelPrompt()">➕ Tambah Manual</button>
-            </div>
-          </div>
+      <form id="settingsForm" onsubmit="saveSettings(event)">
+        <div class="settings-grid">
           
-          <div id="channelConfigContainer">
-            <!-- Channels injected dynamically -->
+          <!-- LEFT COLUMN: SYSTEM & TELEGRAM CONFIG -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- CARD 1: NVR -->
+            <div class="neo-card">
+              <h3 style="margin-bottom: 14px;">📹 Parameter NVR Hikvision</h3>
+              <div class="form-group">
+                <label class="form-label">IP Address NVR</label>
+                <input type="text" name="nvr_ip" class="form-input" placeholder="192.168.99.10" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Username NVR</label>
+                <input type="text" name="nvr_user" class="form-input" placeholder="admin" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Password NVR</label>
+                <input type="password" name="nvr_pass" class="form-input" required>
+              </div>
+            </div>
+
+            <!-- CARD 2: TELEGRAM & SECURITY -->
+            <div class="neo-card">
+              <h3 style="margin-bottom: 14px;">🤖 Telegram Bot & Anti-Spam</h3>
+              <div class="form-group">
+                <label class="form-label">Bot Token Telegram</label>
+                <input type="text" name="telegram_token" class="form-input" placeholder="123456789:AA..." required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Chat / Group ID</label>
+                <input type="text" name="telegram_chat_id" class="form-input" placeholder="-100..." required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status Notifikasi Global</label>
+                <select name="telegram_enabled" class="form-select">
+                  <option value="true">🔔 Aktif (Kirim Foto & Pesan)</option>
+                  <option value="false">🔕 Senyap / Muted (Simpan Lokal Saja)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jeda Cooldown Anti-Spam: <span id="cooldownValBadge" class="neo-badge badge-yellow">15 Detik</span></label>
+                <input type="range" name="cooldown_seconds" min="5" max="180" value="15" style="width: 100%;" oninput="document.getElementById('cooldownValBadge').innerText = this.value + ' Detik'">
+              </div>
+              <div class="form-group">
+                <label class="form-label">PIN Akses Web Panel (6 Digit)</label>
+                <input type="text" name="web_pin" class="form-input" maxlength="6" required>
+              </div>
+            </div>
+
+            <!-- CARD 3: RETENTION -->
+            <div class="neo-card">
+              <h3 style="margin-bottom: 14px;">🗄️ Manajemen Retensi Disk</h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                  <label class="form-label">Batas Masa Simpan</label>
+                  <select name="retention_days" class="form-select">
+                    <option value="1">1 Hari</option>
+                    <option value="3">3 Hari (Rekomendasi)</option>
+                    <option value="7">7 Hari (1 Minggu)</option>
+                    <option value="14">14 Hari (2 Minggu)</option>
+                    <option value="30">30 Hari (1 Bulan)</option>
+                    <option value="0">Unlimited</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Maks. File Simpan</label>
+                  <select name="max_gallery_items" class="form-select">
+                    <option value="50">50 Foto</option>
+                    <option value="100">100 Foto</option>
+                    <option value="150">150 Foto (Rekomendasi)</option>
+                    <option value="300">300 Foto</option>
+                    <option value="500">500 Foto</option>
+                    <option value="0">Unlimited</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- BUTTON SIMPAN KIRI -->
+            <div>
+              <button type="submit" class="neo-btn neo-btn-green" style="width: 100%; padding: 14px; font-size: 1rem;">
+                <span>💾</span> <span>Simpan Seluruh Pengaturan</span>
+              </button>
+            </div>
+
           </div>
 
-          <h3 style="margin: 24px 0 14px 0;">🗄️ Manajemen Retensi Disk</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="form-group">
-              <label class="form-label">Batas Masa Simpan (Hari)</label>
-              <select name="retention_days" class="form-select">
-                <option value="1">1 Hari</option>
-                <option value="3">3 Hari (Rekomendasi)</option>
-                <option value="7">7 Hari (1 Minggu)</option>
-                <option value="14">14 Hari (2 Minggu)</option>
-                <option value="30">30 Hari (1 Bulan)</option>
-                <option value="0">Unlimited</option>
-              </select>
+          <!-- RIGHT COLUMN: MULTI-CAMERA CHANNELS -->
+          <div class="neo-card" style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-bottom: 14px; border-bottom: 2px solid var(--border);">
+              <div>
+                <h3 style="margin: 0;">🎛️ Pemetaan Channel Kamera</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Daftar kamera terdaftar di NVR & pengaturan alert per channel</p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="neo-btn neo-btn-purple" style="padding: 6px 12px; font-size: 0.8rem;" onclick="syncCamerasFromNvr()">🔄 Auto-Sync dari NVR</button>
+                <button type="button" class="neo-btn neo-btn-blue" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addNewChannelPrompt()">➕ Tambah Manual</button>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Maksimal Jumlah File</label>
-              <select name="max_gallery_items" class="form-select">
-                <option value="50">50 Foto</option>
-                <option value="100">100 Foto</option>
-                <option value="150">150 Foto (Rekomendasi)</option>
-                <option value="300">300 Foto</option>
-                <option value="500">500 Foto</option>
-                <option value="0">Unlimited</option>
-              </select>
+
+            <div id="channelConfigContainer" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Channels injected dynamically -->
+            </div>
+
+            <div style="padding-top: 14px; border-top: 2px dashed var(--border);">
+              <button type="submit" class="neo-btn neo-btn-green" style="width: 100%; padding: 12px; font-size: 0.95rem;">
+                <span>💾</span> <span>Simpan Seluruh Pengaturan & Channel</span>
+              </button>
             </div>
           </div>
 
-          <div style="margin-top: 24px;">
-            <button type="submit" class="neo-btn neo-btn-green" style="width: 100%; padding: 14px;">
-              <span>💾</span> <span>Simpan Seluruh Pengaturan & Channel</span>
-            </button>
-          </div>
         </div>
-
       </form>
     </section>
 
@@ -1701,33 +1750,49 @@ INDEX_HTML = r"""<!DOCTYPE html>
       } catch (e) {}
     }
 
+    function toggleChannelActiveStyle(ch) {
+      const box = document.getElementById(`channelBox_${ch}`);
+      const chk = document.getElementById(`ch_enabled_${ch}`);
+      const badge = document.getElementById(`ch_badge_${ch}`);
+      if (!box || !chk) return;
+      if (chk.checked) {
+        box.className = "channel-box ch-active";
+        if (badge) { badge.className = "neo-badge badge-live"; badge.innerText = `● Ch ${ch} (Aktif)`; }
+      } else {
+        box.className = "channel-box ch-muted";
+        if (badge) { badge.className = "neo-badge badge-dead"; badge.innerText = `⏸️ Ch ${ch} (Muted)`; }
+      }
+    }
+
     function renderSingleChannelBox(ch, c) {
+      const isEnabled = !!c.enabled;
       return `
-        <div class="channel-box" id="channelBox_${ch}" data-ch="${ch}">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="channel-box ${isEnabled ? 'ch-active' : 'ch-muted'}" id="channelBox_${ch}" data-ch="${ch}">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="mono" style="font-weight: 800; font-size: 1rem;">Channel ${ch}</span>
+              <span id="ch_badge_${ch}" class="neo-badge ${isEnabled ? 'badge-live' : 'badge-dead'}" style="font-size: 0.8rem;">${isEnabled ? '●' : '⏸️'} Ch ${ch} (${isEnabled ? 'Aktif' : 'Muted'})</span>
+              <span class="mono" style="font-weight: 800; font-size: 0.9rem;" id="ch_label_${ch}">${escapeHtml(c.name || 'Channel ' + ch)}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer;">
-                <input type="checkbox" id="ch_enabled_${ch}" ${c.enabled ? 'checked' : ''}>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer;">
+                <input type="checkbox" id="ch_enabled_${ch}" ${isEnabled ? 'checked' : ''} onchange="toggleChannelActiveStyle('${ch}')">
                 <span>Aktifkan Alert Telegram</span>
               </label>
               <button type="button" class="neo-btn neo-btn-red" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeChannelBox('${ch}')">🗑️ Hapus</button>
             </div>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
             <div>
               <label class="form-label" style="font-size: 0.75rem;">Nama Kamera</label>
-              <input type="text" id="ch_name_${ch}" class="form-input" value="${escapeHtml(c.name || '')}">
+              <input type="text" id="ch_name_${ch}" class="form-input" style="padding: 8px 10px; font-size: 0.85rem;" value="${escapeHtml(c.name || '')}" oninput="document.getElementById('ch_label_${ch}').innerText = this.value || 'Channel ${ch}'">
             </div>
             <div>
-              <label class="form-label" style="font-size: 0.75rem;">Lokasi</label>
-              <input type="text" id="ch_loc_${ch}" class="form-input" value="${escapeHtml(c.location || '')}">
+              <label class="form-label" style="font-size: 0.75rem;">Lokasi / Area</label>
+              <input type="text" id="ch_loc_${ch}" class="form-input" style="padding: 8px 10px; font-size: 0.85rem;" value="${escapeHtml(c.location || '')}">
             </div>
             <div>
-              <label class="form-label" style="font-size: 0.75rem;">IP Address Kamera (Direct)</label>
-              <input type="text" id="ch_ip_${ch}" class="form-input" value="${escapeHtml(c.ip || '')}">
+              <label class="form-label" style="font-size: 0.75rem;">IP Kamera (Direct)</label>
+              <input type="text" id="ch_ip_${ch}" class="form-input" style="padding: 8px 10px; font-size: 0.85rem;" value="${escapeHtml(c.ip || '')}">
             </div>
           </div>
         </div>
