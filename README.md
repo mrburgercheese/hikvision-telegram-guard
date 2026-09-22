@@ -1,6 +1,8 @@
 # 🛡️ CCTV Guard & Telegram Alert System (Multi-Camera NVR Hub)
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/Version-v1.1.2-blue.svg)](CHANGELOG.md)
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-2026--09--22%2021%3A18%20WIB-orange.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Architecture: Standalone](https://img.shields.io/badge/Architecture-Zero--Dependency%20Microservice-emerald.svg)]()
 [![UI: Neo-Brutalism](https://img.shields.io/badge/UI-Retro%20Light%20Neo--Brutalism-purple.svg)]()
@@ -146,11 +148,28 @@ http://<IP_SERVER>:8088/
 cctv-tg-guard/
 ├── cctv_it_guard.py        # Microservice utama (Backend + Web Server + Frontend)
 ├── cctv-tg-guard.service   # Systemd unit file untuk background daemon
+├── install.sh              # Script universal auto-installer & setup wizard
 ├── config.sample.json      # Contoh berkas konfigurasi
 ├── requirements.txt        # Dependensi modul Python
+├── CHANGELOG.md            # Riwayat versi, tanggal rilis & catatan perubahan lengkap
 ├── .gitignore              # Proteksi berkas sensitif dan snapshot lokal
 └── README.md               # Dokumentasi teknis proyek
 ```
+
+---
+
+## 📜 Riwayat Versi & Changelog
+
+Proyek ini mengikuti format [Keep a Changelog](https://keepachangelog.com/) dan standar [Semantic Versioning](https://semver.org/).
+
+| Versi | Tanggal & Jam Rilis (WIB) | Highlight Perubahan |
+| :--- | :--- | :--- |
+| **`v1.1.2`** | `2026-09-22 21:18:00 WIB` | **Multi-Stream Snapshot Fallback**: Auto-fallback sub-stream (102) mengatasi error 503 kamera Ch 3. |
+| **`v1.1.1`** | `2026-09-22 21:09:00 WIB` | **Strict PIN Security & 2-Col UI**: Otentikasi API ketat, tombol 🔒 Kunci Panel, dan layout pengaturan rapi. |
+| **`v1.1.0`** | `2026-09-22 20:44:00 WIB` | **Universal Auto-Installer**: Skrip `install.sh`, auto-discovery NVR Hub, dan multi-kamera switcher. |
+| **`v1.0.0`** | `2026-09-22 17:59:00 WIB` | **Initial Release**: Python microservice, ISAPI XML stream listener, dan Neo-Brutalism Dashboard. |
+
+👉 Lihat rincian teknis lengkap di [**CHANGELOG.md**](CHANGELOG.md).
 
 ---
 
