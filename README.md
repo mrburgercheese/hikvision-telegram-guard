@@ -52,34 +52,45 @@ Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR H
 
 ## 🚀 Panduan Instalasi & Deployment
 
-### 1. Prasyarat Sistem
+### ⚡ Cara 1: One-Line Quick Auto-Installer (Sangat Direkomendasikan)
+Cukup jalankan satu baris perintah berikut di terminal server Linux Anda (Ubuntu / Debian / AlmaLinux / Rocky / CentOS):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/mrburgercheese/hikvision-telegram-guard/main/install.sh | sudo bash
+```
+
+> **Catatan:** Script installer otomatis memeriksa sistem operasi, memasang dependensi (`curl`, `python3`, `requests`), menata folder kerja, menanyakan parameter konfigurasi, dan langsung mengaktifkan systemd service background.
+
+---
+
+### 🛠️ Cara 2: Instalasi Manual (Step-by-Step)
+
+#### 1. Prasyarat Sistem
 - Linux (Ubuntu 20.04+, Debian 11+, AlmaLinux/Rocky Linux 8+)
 - Python 3.8 atau lebih baru
 - Akses jaringan ke NVR / IP Kamera Hikvision
 
-### 2. Kloning Repositori
+#### 2. Kloning Repositori
 ```bash
 git clone https://github.com/mrburgercheese/hikvision-telegram-guard.git /opt/cctv-tg-guard
 cd /opt/cctv-tg-guard
 ```
 
-### 3. Instalasi Dependensi
-Microservice ini menggunakan pustaka standar Python dan hanya membutuhkan modul `requests`:
+#### 3. Instalasi Dependensi
 ```bash
 pip install -r requirements.txt
 # atau via apt di Ubuntu/Debian:
 apt-get install -y python3-requests
 ```
 
-### 4. Konfigurasi Awal
-Salin file template konfigurasi:
+#### 4. Konfigurasi Awal
 ```bash
 cp config.sample.json config.json
 nano config.json
 ```
 Sesuaikan parameter IP NVR, kredensial admin, Token Bot Telegram, Chat ID, dan PIN akses Web.
 
-### 5. Pasang Systemd Service (Auto-Start on Boot)
+#### 5. Pasang & Jalankan Systemd Service
 ```bash
 cp cctv-tg-guard.service /etc/systemd/system/cctv-tg-guard.service
 systemctl daemon-reload
