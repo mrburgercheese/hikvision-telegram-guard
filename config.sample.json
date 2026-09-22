@@ -1,0 +1,39 @@
+{
+  "nvr_ip": "192.168.1.10",
+  "nvr_user": "admin",
+  "nvr_pass": "YourNvrPassword123#",
+  "telegram_token": "123456789:AAFxSampleTokenFromBotFather",
+  "telegram_chat_id": "-100123456789",
+  "telegram_enabled": true,
+  "cooldown_seconds": 15,
+  "web_port": 8088,
+  "web_pin": "060708",
+  "retention_days": 3,
+  "max_gallery_items": 150,
+  "channels": {
+    "1": {
+      "name": "CAM 1 - FRONT ENTRANCE",
+      "location": "MAIN GATE / LOBBY",
+      "ip": "192.168.1.91",
+      "enabled": true,
+      "main_stream": "101",
+      "sub_stream": "102"
+    },
+    "2": {
+      "name": "CAM 2 - PARKING AREA",
+      "location": "OUTDOOR PARKING LOT",
+      "ip": "192.168.1.92",
+      "enabled": true,
+      "main_stream": "101",
+      "sub_stream": "102"
+    },
+    "3": {
+      "name": "CAM 3 - SERVER ROOM",
+      "location": "DATA CENTER / IT RACK",
+      "ip": "192.168.1.93",
+      "enabled": true,
+      "main_stream": "101",
+      "sub_stream": "102"
+    }
+  }
+}

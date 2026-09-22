@@ -1,0 +1,26 @@
+# CCTV Guard & Telegram Alert System
+
+# Runtime config & sensitive data
+config.json
+*.env
+
+# Snapshots & Media storage
+snapshots/
+*.jpg
+*.jpeg
+*.png
+*.mp4
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# IDE & OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,18 @@
+[Unit]
+Description=CCTV Guard & Telegram Alert System Microservice
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/cctv-tg-guard
+ExecStart=/usr/bin/python3 -u /opt/cctv-tg-guard/cctv_it_guard.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
