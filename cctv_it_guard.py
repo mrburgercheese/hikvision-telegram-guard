@@ -1254,7 +1254,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
               <span class="pulse-dot"></span> <span id="viewModeLabel">MJPEG STREAM</span>
             </span>
           </div>
-          <img id="cameraStreamImg" src="/api/live-stream?channel=2" alt="Live Camera Stream">
+          <img id="cameraStreamImg" src="/api/live-stream?channel=2" alt="Live Camera Stream" onerror="handleStreamError(this)">
         </div>
       </div>
     </section>
@@ -1634,6 +1634,17 @@ INDEX_HTML = r"""<!DOCTYPE html>
       } else {
         streamImg.src = `/api/camera-snapshot?channel=${activeChannel}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
       }
+    }
+
+    let streamRetryTimer = null;
+    function handleStreamError(img) {
+      if (!currentAuthPin) return;
+      if (streamRetryTimer) clearTimeout(streamRetryTimer);
+      streamRetryTimer = setTimeout(() => {
+        if (img && currentAuthPin) {
+          refreshStream();
+        }
+      }, 1500);
     }
 
     async function fetchStats() {
