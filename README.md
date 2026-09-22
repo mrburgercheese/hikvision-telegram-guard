@@ -59,7 +59,7 @@ Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR H
 
 ### 2. Kloning Repositori
 ```bash
-git clone https://github.com/mrburgercheese/cctv-tg-guard.git /opt/cctv-tg-guard
+git clone https://github.com/mrburgercheese/hikvision-telegram-guard.git /opt/cctv-tg-guard
 cd /opt/cctv-tg-guard
 ```
 
