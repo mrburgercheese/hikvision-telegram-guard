@@ -1067,6 +1067,14 @@ INDEX_HTML = r"""<!DOCTYPE html>
       align-items: start;
     }
 
+    body.app-locked .main-container,
+    body.app-locked .sidebar {
+      filter: blur(10px);
+      pointer-events: none;
+      user-select: none;
+      transition: filter 0.3s ease;
+    }
+
     @media (max-width: 1024px) {
       .settings-grid {
         grid-template-columns: 1fr;
@@ -1081,7 +1089,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     }
   </style>
 </head>
-<body>
+<body class="app-locked">
 
   <!-- PIN LOCK MODAL -->
   <div id="pinModal" class="modal-backdrop" style="display: flex;">
@@ -1125,7 +1133,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
         <span id="sideCooldown" class="neo-badge badge-yellow">15s Jeda</span>
       </div>
       <div style="font-size: 0.85rem; font-weight: 800;" id="sideNvrIp">NVR: 192.168.99.10</div>
-      <div style="font-size: 0.75rem; color: var(--text-muted);" id="sideChannelsSummary">3 Kamera Terdaftar</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);" id="sideChannelsSummary">Memuat Kamera...</div>
     </div>
 
     <ul class="nav-list">
@@ -1144,11 +1152,14 @@ INDEX_HTML = r"""<!DOCTYPE html>
       <li class="nav-item" onclick="switchTab('tab-guide')">
         <span>📘</span> <span>Panduan & Diagram</span>
       </li>
+      <li class="nav-item" style="background: #FFE4E6; border-color: #F43F5E; color: #BE123C; margin-top: 14px;" onclick="lockPanel()">
+        <span>🔒</span> <span>Kunci Panel</span>
+      </li>
     </ul>
 
     <div class="sidebar-footer">
       <div>Hosterbyte Surveillance Hub</div>
-      <div class="mono" style="margin-top: 4px;">v3.0 Multi-Cam</div>
+      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.1.0 Multi-Cam</div>
     </div>
   </aside>
 
@@ -1442,9 +1453,43 @@ INDEX_HTML = r"""<!DOCTYPE html>
     let currentPreviewFile = "";
     let globalChannels = {};
 
+    async function authFetch(url, options = {}) {
+      if (!options.headers) options.headers = {};
+      if (options.headers instanceof Headers) {
+        options.headers.append("X-Web-PIN", currentAuthPin);
+      } else {
+        options.headers["X-Web-PIN"] = currentAuthPin;
+      }
+      try {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+          lockPanel();
+          showToast("🔒 Sesi terkunci. Masukkan PIN keamanan.", "warn");
+          throw new Error("Unauthorized");
+        }
+        return res;
+      } catch (e) {
+        throw e;
+      }
+    }
+
+    function lockPanel() {
+      sessionStorage.removeItem("cctv_pin");
+      currentAuthPin = "";
+      clearPin();
+      document.body.classList.add("app-locked");
+      document.getElementById("pinModal").style.display = "flex";
+      const streamImg = document.getElementById("cameraStreamImg");
+      if (streamImg) streamImg.src = "";
+    }
+
     if (currentAuthPin) {
+      document.body.classList.remove("app-locked");
       document.getElementById("pinModal").style.display = "none";
       initApp();
+    } else {
+      document.body.classList.add("app-locked");
+      document.getElementById("pinModal").style.display = "flex";
     }
 
     function addPin(num) {
@@ -1471,8 +1516,9 @@ INDEX_HTML = r"""<!DOCTYPE html>
         if (data.ok) {
           sessionStorage.setItem("cctv_pin", pin);
           currentAuthPin = pin;
+          document.body.classList.remove("app-locked");
           document.getElementById("pinModal").style.display = "none";
-          showToast("🔓 Akses Diterima! Selamat datang.", "success");
+          showToast("🔓 Akses Diterima! Panel terbuka.", "success");
           initApp();
         } else {
           clearPin();
@@ -1515,10 +1561,10 @@ INDEX_HTML = r"""<!DOCTYPE html>
     document.addEventListener("visibilitychange", () => {
       isTabVisible = !document.hidden;
       const streamImg = document.getElementById("cameraStreamImg");
-      const activeTab = document.querySelector(".tab-content.active").id;
+      const activeTab = document.querySelector(".tab-content.active") ? document.querySelector(".tab-content.active").id : "";
       if (activeTab === "tab-dashboard") {
-        if (isTabVisible && activeStreamMode === "live") {
-          streamImg.src = `/api/live-stream?channel=${activeChannel}&t=` + Date.now();
+        if (isTabVisible && activeStreamMode === "live" && currentAuthPin) {
+          streamImg.src = `/api/live-stream?channel=${activeChannel}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
         } else {
           streamImg.src = "";
         }
@@ -1546,27 +1592,29 @@ INDEX_HTML = r"""<!DOCTYPE html>
         label.innerText = "MJPEG STREAM";
         badge.innerText = "🔴 LIVE STREAM (~8 FPS)";
         badge.className = "neo-badge badge-live";
-        streamImg.src = `/api/live-stream?channel=${activeChannel}&t=` + Date.now();
+        streamImg.src = `/api/live-stream?channel=${activeChannel}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
       } else {
         label.innerText = "STATIC SNAPSHOT";
         badge.innerText = "📷 SNAPSHOT FRAME";
         badge.className = "neo-badge badge-yellow";
-        streamImg.src = `/api/camera-snapshot?channel=${activeChannel}&t=` + Date.now();
+        streamImg.src = `/api/camera-snapshot?channel=${activeChannel}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
       }
     }
 
     function refreshStream() {
+      if (!currentAuthPin) return;
       const streamImg = document.getElementById("cameraStreamImg");
       if (activeStreamMode === "live") {
-        streamImg.src = `/api/live-stream?channel=${activeChannel}&t=` + Date.now();
+        streamImg.src = `/api/live-stream?channel=${activeChannel}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
       } else {
-        streamImg.src = `/api/camera-snapshot?channel=${activeChannel}&t=` + Date.now();
+        streamImg.src = `/api/camera-snapshot?channel=${activeChannel}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
       }
     }
 
     async function fetchStats() {
+      if (!currentAuthPin) return;
       try {
-        const res = await fetch("/api/stats");
+        const res = await authFetch("/api/stats");
         const data = await res.json();
         
         document.getElementById("statTriggers").innerText = data.triggers_today;
@@ -1622,8 +1670,9 @@ INDEX_HTML = r"""<!DOCTYPE html>
     }
 
     async function fetchLogs() {
+      if (!currentAuthPin) return;
       try {
-        const res = await fetch("/api/logs");
+        const res = await authFetch("/api/logs");
         const logs = await res.json();
         const box = document.getElementById("terminalLogBox");
         box.innerHTML = logs.map(l => {
@@ -1644,7 +1693,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     async function testTelegramAlert() {
       showToast(`Mengirim test alert Ch ${activeChannel} ke Telegram...`, "info");
       try {
-        const res = await fetch("/api/test-telegram", {
+        const res = await authFetch("/api/test-telegram", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({channel: activeChannel})
@@ -1662,10 +1711,11 @@ INDEX_HTML = r"""<!DOCTYPE html>
     }
 
     async function loadGallery(page=1) {
+      if (!currentAuthPin) return;
       const date = document.getElementById("galleryDateFilter").value;
       const channel = document.getElementById("galleryCamFilter").value;
       try {
-        const res = await fetch(`/api/gallery?page=${page}&date=${encodeURIComponent(date)}&channel=${encodeURIComponent(channel)}`);
+        const res = await authFetch(`/api/gallery?page=${page}&date=${encodeURIComponent(date)}&channel=${encodeURIComponent(channel)}`);
         const data = await res.json();
         
         document.getElementById("gallerySummaryText").innerText = `Total ${data.total_files} file snapshot (${data.total_mb} MB) terpakai`;
@@ -1679,8 +1729,8 @@ INDEX_HTML = r"""<!DOCTYPE html>
           container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Belum ada snapshot event pada filter ini</div>';
         } else {
           container.innerHTML = data.items.map(item => `
-            <div class="gallery-card" onclick="openPreview('${item.filename}', '${item.url}', '${item.formatted_date}')">
-              <img class="gallery-thumb" src="${item.url}" loading="lazy" alt="Snapshot">
+            <div class="gallery-card" onclick="openPreview('${item.filename}', '${item.url}?pin=${encodeURIComponent(currentAuthPin)}', '${item.formatted_date}')">
+              <img class="gallery-thumb" src="${item.url}?pin=${encodeURIComponent(currentAuthPin)}" loading="lazy" alt="Snapshot">
               <div class="gallery-info">
                 <div>
                   <span class="neo-badge badge-purple" style="font-size: 0.65rem; margin-bottom: 2px;">Ch ${item.channel}</span>
@@ -1716,7 +1766,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     async function deleteCurrentPreview() {
       if (!confirm("Hapus file snapshot ini secara permanen?")) return;
       try {
-        const res = await fetch("/api/gallery/delete", {
+        const res = await authFetch("/api/gallery/delete", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({filename: currentPreviewFile})
@@ -1733,7 +1783,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     async function runCleanup() {
       showToast("Membersihkan foto kadaluarsa...", "info");
       try {
-        const res = await fetch("/api/gallery/cleanup", {method: "POST"});
+        const res = await authFetch("/api/gallery/cleanup", {method: "POST"});
         const data = await res.json();
         showToast(data.msg, "success");
         loadGallery(1);
@@ -1743,7 +1793,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     async function clearAllGallery() {
       if (!confirm("PERINGATAN: Apakah Anda yakin ingin MENGHAPUS SEMUA snapshot di galeri?")) return;
       try {
-        const res = await fetch("/api/gallery/clear-all", {method: "POST"});
+        const res = await authFetch("/api/gallery/clear-all", {method: "POST"});
         const data = await res.json();
         showToast(data.msg, "success");
         loadGallery(1);
@@ -1825,8 +1875,9 @@ INDEX_HTML = r"""<!DOCTYPE html>
     }
 
     async function loadSettingsForm() {
+      if (!currentAuthPin) return;
       try {
-        const res = await fetch("/api/config");
+        const res = await authFetch("/api/config");
         const cfg = await res.json();
         const form = document.getElementById("settingsForm");
         for (let k in cfg) {
@@ -1871,7 +1922,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
       });
 
       try {
-        const res = await fetch("/api/config", {
+        const res = await authFetch("/api/config", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify(payload)
@@ -1889,7 +1940,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     async function syncCamerasFromNvr() {
       showToast("Menghubungi NVR & menyinkronkan kamera...", "info");
       try {
-        const res = await fetch("/api/sync-nvr", {method: "POST"});
+        const res = await authFetch("/api/sync-nvr", {method: "POST"});
         const data = await res.json();
         if (data.ok) {
           showToast(`✅ Berhasil menyinkronkan ${data.count} kamera dari NVR!`, "success");
@@ -1907,7 +1958,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
       fetchStats();
       setInterval(fetchStats, 3000);
       setInterval(() => {
-        const activeTab = document.querySelector(".tab-content.active").id;
+        const activeTab = document.querySelector(".tab-content.active") ? document.querySelector(".tab-content.active").id : "";
         if (activeTab === "tab-logs") fetchLogs();
       }, 5000);
     }
@@ -1929,6 +1980,7 @@ class CCTVGuardHTTPHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Web-PIN")
         self.end_headers()
         if not getattr(self, 'is_head', False):
             self.wfile.write(body)
@@ -1941,15 +1993,27 @@ class CCTVGuardHTTPHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Web-PIN")
         self.end_headers()
+
+    def check_auth(self):
+        cfg = get_config()
+        expected_pin = str(cfg.get("web_pin", "060708"))
+        # 1. Header
+        provided_pin = self.headers.get("X-Web-PIN", "")
+        # 2. Query parameter (?pin=)
+        if not provided_pin:
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            provided_pin = qs.get("pin", [""])[0]
+        return str(provided_pin) == expected_pin
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
 
-        # 1. Main Web Panel UI
+        # 1. Main Web Panel UI (HTML & Modal)
         if path in ["/", "/index.html"]:
             body = INDEX_HTML.encode('utf-8')
             self.send_response(200)
@@ -1960,8 +2024,13 @@ class CCTVGuardHTTPHandler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
             return
 
+        # --- AUTH GATE: Protect All API & Snapshot Requests ---
+        if not self.check_auth():
+            self.send_json_response({"ok": False, "msg": "Unauthorized. PIN required."}, status=401)
+            return
+
         # 2. Stats API
-        elif path == "/api/stats":
+        if path == "/api/stats":
             cfg = get_config()
             with stats_lock:
                 data = {
@@ -2130,7 +2199,7 @@ class CCTVGuardHTTPHandler(BaseHTTPRequestHandler):
         except Exception:
             payload = {}
 
-        # 1. Verify PIN Access
+        # 1. Verify PIN Access (Public Auth Endpoint)
         if path == "/api/auth/verify":
             cfg = get_config()
             pin = payload.get("pin", "")
@@ -2140,8 +2209,13 @@ class CCTVGuardHTTPHandler(BaseHTTPRequestHandler):
                 self.send_json_response({"ok": False, "msg": "PIN Salah"}, status=401)
             return
 
+        # --- AUTH GATE: Protect All Other POST APIs ---
+        if not self.check_auth():
+            self.send_json_response({"ok": False, "msg": "Unauthorized. PIN required."}, status=401)
+            return
+
         # 2. Update Configuration
-        elif path == "/api/config":
+        if path == "/api/config":
             update_config(payload)
             self.send_json_response({"ok": True, "msg": "Konfigurasi berhasil disimpan"})
             return
