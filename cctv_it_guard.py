@@ -1032,6 +1032,39 @@ INDEX_HTML = r"""<!DOCTYPE html>
       object-fit: contain;
     }
 
+    /* FULLSCREEN MATRIX & SLOT ADAPTATION */
+    #liveviewGridContainer:fullscreen,
+    #liveviewGridContainer:-webkit-full-screen {
+      background: #0F172A !important;
+      padding: 16px !important;
+      overflow-y: auto !important;
+      box-sizing: border-box !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      display: grid !important;
+      gap: 14px !important;
+    }
+    #liveviewGridContainer:fullscreen .matrix-viewport,
+    #liveviewGridContainer:-webkit-full-screen .matrix-viewport {
+      height: 36vh !important;
+    }
+    .matrix-card:fullscreen,
+    .matrix-card:-webkit-full-screen {
+      background: #0F172A !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      border: none !important;
+      border-radius: 0 !important;
+    }
+    .matrix-card:fullscreen .matrix-viewport,
+    .matrix-card:-webkit-full-screen .matrix-viewport {
+      flex: 1 !important;
+      height: 100% !important;
+      width: 100% !important;
+    }
+
     .matrix-footer {
       padding: 8px 14px;
       background: #F1F5F9;
@@ -1898,7 +1931,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     function reloadSlotStream(slotIdx) {
       const chId = liveViewSlots[slotIdx];
       const img = document.getElementById(`matrixImg_${slotIdx}`);
-      if (img && chId && chId !== "none" && currentAuthPin) {
+      if (img && chId && chId !== "none" && currentAuthPin && !isLiveViewPaused) {
         img.src = `/api/live-stream?channel=${chId}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
       }
     }
@@ -1907,12 +1940,30 @@ INDEX_HTML = r"""<!DOCTYPE html>
       if (!currentAuthPin || isLiveViewPaused) return;
       setTimeout(() => {
         reloadSlotStream(slotIdx);
-      }, 2000);
+      }, 2500);
     }
 
     function refreshLiveViewStreams() {
       if (!currentAuthPin) return;
-      renderLiveViewGrid();
+      if (isLiveViewPaused) {
+        toggleLiveViewPause();
+        return;
+      }
+      const imgs = document.querySelectorAll(".matrix-stream-img");
+      if (imgs.length > 0) {
+        imgs.forEach(img => {
+          const m = img.id.match(/matrixImg_(\d+)/);
+          if (m) {
+            const slotIdx = parseInt(m[1]);
+            const chId = liveViewSlots[slotIdx];
+            if (chId && chId !== "none") {
+              img.src = `/api/live-stream?channel=${chId}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
+            }
+          }
+        });
+      } else {
+        renderLiveViewGrid();
+      }
       showToast("🔄 Seluruh stream matrix dimuat ulang", "info");
     }
 
@@ -1924,7 +1975,21 @@ INDEX_HTML = r"""<!DOCTYPE html>
 
     function startAllLiveViewStreams() {
       if (!currentAuthPin || isLiveViewPaused) return;
-      renderLiveViewGrid();
+      const imgs = document.querySelectorAll(".matrix-stream-img");
+      if (imgs.length === 0) {
+        renderLiveViewGrid();
+      } else {
+        imgs.forEach(img => {
+          const m = img.id.match(/matrixImg_(\d+)/);
+          if (m) {
+            const slotIdx = parseInt(m[1]);
+            const chId = liveViewSlots[slotIdx];
+            if (chId && chId !== "none") {
+              img.src = `/api/live-stream?channel=${chId}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
+            }
+          }
+        });
+      }
     }
 
     function toggleLiveViewPause() {
@@ -1932,11 +1997,27 @@ INDEX_HTML = r"""<!DOCTYPE html>
       isLiveViewPaused = !isLiveViewPaused;
       if (isLiveViewPaused) {
         stopAllLiveViewStreams();
-        if (btn) btn.innerHTML = "▶️ Resume";
+        if (btn) {
+          btn.innerHTML = "▶️ Lanjutkan";
+          btn.style.background = "#FEF08A";
+          btn.style.borderColor = "#EAB308";
+        }
+        document.querySelectorAll("[id^=matrixBadge_]").forEach(b => {
+          b.innerText = "⏸️ DIJEDA";
+          b.className = "neo-badge badge-yellow";
+        });
         showToast("⏸️ Streaming matrix dijeda", "warn");
       } else {
+        if (btn) {
+          btn.innerHTML = "⏸️ Pause";
+          btn.style.background = "";
+          btn.style.borderColor = "";
+        }
         startAllLiveViewStreams();
-        if (btn) btn.innerHTML = "⏸️ Pause";
+        document.querySelectorAll("[id^=matrixBadge_]").forEach(b => {
+          b.innerText = "● LIVE";
+          b.className = "neo-badge badge-live";
+        });
         showToast("▶️ Streaming matrix dilanjutkan", "success");
       }
     }
@@ -1944,22 +2025,26 @@ INDEX_HTML = r"""<!DOCTYPE html>
     function toggleSlotFullscreen(slotIdx) {
       const card = document.getElementById(`matrixCard_${slotIdx}`);
       if (!card) return;
-      if (!document.fullscreenElement) {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
         if (card.requestFullscreen) card.requestFullscreen();
         else if (card.webkitRequestFullscreen) card.webkitRequestFullscreen();
+        else if (card.mozRequestFullScreen) card.mozRequestFullScreen();
       } else {
         if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       }
     }
 
     function toggleMatrixFullscreen() {
       const grid = document.getElementById("liveviewGridContainer");
       if (!grid) return;
-      if (!document.fullscreenElement) {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
         if (grid.requestFullscreen) grid.requestFullscreen();
         else if (grid.webkitRequestFullscreen) grid.webkitRequestFullscreen();
+        else if (grid.mozRequestFullScreen) grid.mozRequestFullScreen();
       } else {
         if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       }
     }
 
