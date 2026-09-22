@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.3.0] — 2026-09-22 22:15:00 WIB
+
+### 🚀 Added & Enhanced
+- **Realtime Server Resource & Network Bandwidth Monitor**:
+  - Background daemon thread `system_metrics_worker` sampling CPU load (`os.getloadavg()`), RAM usage (`/proc/meminfo`), and network traffic rates (`/proc/net/dev`).
+  - Integrated into Sidebar status box (`.cam-status-box`):
+    - `⚡ Load CPU`: 1-min & 5-min CPU load average (`0.02 / 0.05`).
+    - `📊 RAM`: Memory consumption in MB and percentage (`418MB (43.4%)`).
+    - `🌐 Bandwidth`: Realtime download / upload rates (`↓1.2 MB/s ↑1.0 MB/s`).
+  - Non-blocking delta calculations with thread-safe data synchronization (`metrics_lock`).
+  - Exposed via `/api/stats` and polled dynamically every 3 seconds on the Web UI.
+
+---
+
 ## [1.2.0] — 2026-09-22 22:05:00 WIB
 
 ### 🚀 Added & Enhanced

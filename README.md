@@ -1,14 +1,14 @@
 # 🛡️ CCTV Guard & Telegram Alert System (Multi-Camera NVR Hub)
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/Version-v1.2.0-blue.svg)](CHANGELOG.md)
-[![Last Updated](https://img.shields.io/badge/Last%20Updated-2026--09--22%2022%3A05%3A00%20WIB-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.3.0-blue.svg)](CHANGELOG.md)
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-2026--09--22%2022%3A15%3A00%20WIB-orange.svg)](CHANGELOG.md)
 [![Changelog](https://img.shields.io/badge/Changelog-Lihat%20Riwayat-success.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Architecture: Standalone](https://img.shields.io/badge/Architecture-Zero--Dependency%20Microservice-emerald.svg)]()
 [![UI: Neo-Brutalism](https://img.shields.io/badge/UI-Retro%20Light%20Neo--Brutalism-purple.svg)]()
 
-> 🕒 **Terakhir Diperbarui:** `22 September 2026, 22:05:00 WIB` | 🏷️ **Versi Aktif:** [`v1.2.0`](CHANGELOG.md) | 📜 [**Buka Catatan Perubahan (CHANGELOG.md)**](CHANGELOG.md)
+> 🕒 **Terakhir Diperbarui:** `22 September 2026, 22:15:00 WIB` | 🏷️ **Versi Aktif:** [`v1.3.0`](CHANGELOG.md) | 📜 [**Buka Catatan Perubahan (CHANGELOG.md)**](CHANGELOG.md)
 
 Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR Hikvision secara realtime, menangkap snapshot resolusi tinggi (Main-Stream 1080p) saat mendeteksi gerakan manusia/VMD (*Video Motion Detection*), mengirimkan peringatan otomatis ke Telegram, serta menyediakan **Web Panel Dashboard Monitor & Live View Matrix interaktif** bergaya **Retro Light (Soft Neo-Brutalism)**.
 
@@ -39,6 +39,7 @@ Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR H
 ## 🌟 Fitur Utama
 
 - ⚡ **Zero-Latency Event Stream Listener**: Membuka persistent connection HTTP Digest ke Hikvision ISAPI `alertStream` NVR dengan kemampuan *auto-reconnect* tanpa henti.
+- 📊 **Realtime Server Resource & Bandwidth Monitor**: Background daemon yang memantau utilisasi CPU Load, konsumsi RAM, dan kecepatan transfer jaringan TX/RX realtime pada sidebar status box.
 - 📺 **Live View Multi-Kamera Matrix**: Monitoring multi-stream simultan realtime dengan pilihan grid dinamis (`1x1`, `1x2`, `1x3`, `2x2 Matrix`, dan `Auto Grid`) serta kebebasan memilih channel per slot stream.
 - 🎛️ **Multi-Camera NVR Hub**: Memantau seluruh channel kamera (Ch 1 s/d Ch 16+) secara simultan melalui satu koneksi NVR terpusat.
 - 🔄 **1-Click Auto-Discovery & NVR Sync**: Otomatis mendeteksi dan menyinkronkan seluruh daftar kamera, nama asli, dan IP target langsung dari NVR Hikvision.

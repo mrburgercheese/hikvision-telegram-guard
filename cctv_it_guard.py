@@ -39,7 +39,7 @@ from requests.auth import HTTPDigestAuth
 # APPLICATION METADATA & CONSTANTS
 # ------------------------------------------------------------------------------
 APP_NAME = "Hikvision Telegram Guard"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.3.0"
 APP_SUBTITLE = "Multi-Camera NVR Hub & Live Matrix"
 
 # ------------------------------------------------------------------------------
@@ -165,6 +165,102 @@ def check_date_rollover():
             stats["cooldown_suppressed"] = 0
             stats["channel_stats"] = {}
             stats["current_date"] = today
+
+# ------------------------------------------------------------------------------
+# SERVER RESOURCE & NETWORK TX/RX MONITOR
+# ------------------------------------------------------------------------------
+system_metrics = {
+    "load_1m": "0.00",
+    "load_5m": "0.00",
+    "ram_used_mb": 0,
+    "ram_total_mb": 0,
+    "ram_percent": 0.0,
+    "net_rx_speed": "0 B/s",
+    "net_tx_speed": "0 B/s",
+    "net_rx_raw": 0,
+    "net_tx_raw": 0
+}
+metrics_lock = threading.Lock()
+
+def get_net_bytes():
+    rx = 0
+    tx = 0
+    try:
+        with open("/proc/net/dev", "r") as f:
+            lines = f.readlines()[2:]
+            for line in lines:
+                parts = line.strip().split()
+                if len(parts) >= 10:
+                    iface = parts[0].replace(":", "")
+                    if iface != "lo":
+                        rx += int(parts[1])
+                        tx += int(parts[9])
+    except Exception:
+        pass
+    return rx, tx
+
+def get_ram_info():
+    mem_total = 0
+    mem_avail = 0
+    try:
+        with open("/proc/meminfo", "r") as f:
+            for line in f:
+                if line.startswith("MemTotal:"):
+                    mem_total = int(line.split()[1]) * 1024
+                elif line.startswith("MemAvailable:"):
+                    mem_avail = int(line.split()[1]) * 1024
+    except Exception:
+        pass
+    mem_used = max(0, mem_total - mem_avail)
+    mem_pct = round((mem_used / mem_total * 100), 1) if mem_total > 0 else 0.0
+    return mem_used, mem_total, mem_pct
+
+def format_net_speed(bytes_per_sec):
+    if bytes_per_sec >= 1024 * 1024:
+        return f"{bytes_per_sec / (1024 * 1024):.1f} MB/s"
+    elif bytes_per_sec >= 1024:
+        return f"{bytes_per_sec / 1024:.0f} KB/s"
+    else:
+        return f"{bytes_per_sec:.0f} B/s"
+
+def system_metrics_worker():
+    last_rx, last_tx = get_net_bytes()
+    last_time = time.time()
+    
+    while True:
+        try:
+            time.sleep(1.5)
+            now = time.time()
+            curr_rx, curr_tx = get_net_bytes()
+            dt = max(0.1, now - last_time)
+            
+            rx_rate = max(0, (curr_rx - last_rx) / dt)
+            tx_rate = max(0, (curr_tx - last_tx) / dt)
+            
+            last_rx, last_tx = curr_rx, curr_tx
+            last_time = now
+
+            try:
+                load = os.getloadavg()
+                load_1m_str = f"{load[0]:.2f}"
+                load_5m_str = f"{load[1]:.2f}"
+            except Exception:
+                load_1m_str, load_5m_str = "0.00", "0.00"
+
+            ram_used, ram_total, ram_pct = get_ram_info()
+
+            with metrics_lock:
+                system_metrics["load_1m"] = load_1m_str
+                system_metrics["load_5m"] = load_5m_str
+                system_metrics["ram_used_mb"] = int(ram_used / (1024 * 1024))
+                system_metrics["ram_total_mb"] = int(ram_total / (1024 * 1024))
+                system_metrics["ram_percent"] = ram_pct
+                system_metrics["net_rx_speed"] = format_net_speed(rx_rate)
+                system_metrics["net_tx_speed"] = format_net_speed(tx_rate)
+                system_metrics["net_rx_raw"] = rx_rate
+                system_metrics["net_tx_raw"] = tx_rate
+        except Exception:
+            pass
 
 # ------------------------------------------------------------------------------
 # CONFIG MANAGER
@@ -1274,7 +1370,22 @@ INDEX_HTML = r"""<!DOCTYPE html>
         <span id="sideCooldown" class="neo-badge badge-yellow">15s Jeda</span>
       </div>
       <div style="font-size: 0.85rem; font-weight: 800;" id="sideNvrIp">NVR: 192.168.99.10</div>
-      <div style="font-size: 0.75rem; color: var(--text-muted);" id="sideChannelsSummary">Memuat Kamera...</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;" id="sideChannelsSummary">Memuat Kamera...</div>
+      
+      <div style="border-top: 1px dashed #CBD5E1; padding-top: 8px; margin-top: 6px; font-size: 0.73rem; display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-muted); font-weight: 600;">⚡ Load CPU:</span>
+          <span class="mono" id="sideServerLoad" style="font-weight: 700; color: #0F172A;">-</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-muted); font-weight: 600;">📊 RAM:</span>
+          <span class="mono" id="sideServerRam" style="font-weight: 700; color: #0F172A;">-</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-muted); font-weight: 600;">🌐 Bandwidth:</span>
+          <span class="mono" id="sideNetBandwidth" style="font-weight: 700; color: #0F172A;">-</span>
+        </div>
+      </div>
     </div>
 
     <ul class="nav-list">
@@ -1303,7 +1414,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
 
     <div class="sidebar-footer">
       <div>Hosterbyte Surveillance Hub</div>
-      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.2.0 Live Matrix</div>
+      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.3.0 Live Matrix</div>
     </div>
   </aside>
 
@@ -2079,6 +2190,16 @@ INDEX_HTML = r"""<!DOCTYPE html>
         document.getElementById("sideCooldown").innerText = data.cooldown_seconds + "s Jeda";
         document.getElementById("statTgStatus").innerText = data.telegram_enabled ? "🔔 AKTIF" : "🔕 MUTED";
 
+        if (data.system_metrics) {
+          const sm = data.system_metrics;
+          const elLoad = document.getElementById("sideServerLoad");
+          const elRam = document.getElementById("sideServerRam");
+          const elNet = document.getElementById("sideNetBandwidth");
+          if (elLoad) elLoad.innerText = `${sm.load_1m} / ${sm.load_5m}`;
+          if (elRam) elRam.innerText = `${sm.ram_used_mb}MB (${sm.ram_percent}%)`;
+          if (elNet) elNet.innerText = `↓${sm.net_rx_speed} ↑${sm.net_tx_speed}`;
+        }
+
         globalChannels = data.channels || {};
         renderCamSelector();
       } catch (e) {}
@@ -2476,13 +2597,16 @@ class CCTVGuardHTTPHandler(BaseHTTPRequestHandler):
         # 2. Stats API
         if path == "/api/stats":
             cfg = get_config()
+            with metrics_lock:
+                cur_metrics = dict(system_metrics)
             with stats_lock:
                 data = {
                     **stats,
                     "nvr_ip": cfg.get("nvr_ip", "192.168.99.10"),
                     "cooldown_seconds": cfg.get("cooldown_seconds", 15),
                     "telegram_enabled": cfg.get("telegram_enabled", True),
-                    "channels": cfg.get("channels", {})
+                    "channels": cfg.get("channels", {}),
+                    "system_metrics": cur_metrics
                 }
             self.send_json_response(data)
             return
@@ -2743,7 +2867,11 @@ def main():
     t_retention = threading.Thread(target=retention_worker, daemon=True, name="RetentionWorker")
     t_retention.start()
 
-    # 3. Start Multi-Threaded Web Server (Main Thread)
+    # 3. Start System Metrics Worker Thread (CPU Load, RAM, Bandwidth)
+    t_metrics = threading.Thread(target=system_metrics_worker, daemon=True, name="SystemMetricsWorker")
+    t_metrics.start()
+
+    # 4. Start Multi-Threaded Web Server (Main Thread)
     run_web_server()
 
 if __name__ == "__main__":
