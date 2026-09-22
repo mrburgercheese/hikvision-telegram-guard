@@ -9,6 +9,16 @@ Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR H
 
 ---
 
+## 📸 Screenshots & Antarmuka
+
+### 🖥️ 1. Web Panel Dashboard Monitor (Retro Light Neo-Brutalism)
+![Web Dashboard Monitor](docs/screenshots/web-dashboard.jpg)
+
+### 📲 2. Notifikasi Alert Deteksi Gerakan di Telegram
+![Telegram Alert Notification](docs/screenshots/telegram-alert.jpg)
+
+---
+
 ## 🌟 Fitur Utama
 
 - ⚡ **Zero-Latency Event Stream Listener**: Membuka persistent connection HTTP Digest ke Hikvision ISAPI `alertStream` NVR dengan kemampuan *auto-reconnect* tanpa henti.
