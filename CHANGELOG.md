@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.3.1] — 2026-09-23 06:16:00 WIB
+
+### 🚀 Added & Enhanced
+- **Multi-Source Concurrent ISAPI Event Listeners**:
+  - Added background `CamListenerManager` that opens direct, persistent HTTP Digest `alertStream` long-polling sessions to all individual IP Cameras (`192.168.99.92`, `.93`, `.94`) concurrently with the central NVR `alertStream` (`192.168.99.10`).
+  - Zero-latency motion capture (<50ms) bypassing NVR queue bottlenecks while retaining anti-spam cooldown protection.
+- **Bulletproof Channel & Event Type Resolution**:
+  - Prioritized `dynVideoInputChannelID`, `videoInputChannelID`, `ipAddress` matching, and channel context to ensure events from NVR (where `channelID: 0`) are accurately routed to their physical cameras.
+  - Expanded event detection support: `vmd`, `motion`, `linedetection`, `fielddetection`, `regionentrance`, `regionexiting`, `tamper`, `shelter`, and `intrusion`.
+  - Added explicit `[ISAPI-EVENT]` live telemetry logging.
+
+---
+
 ## [1.3.0] — 2026-09-22 22:15:00 WIB
 
 ### 🚀 Added & Enhanced

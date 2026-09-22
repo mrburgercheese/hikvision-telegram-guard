@@ -39,7 +39,7 @@ from requests.auth import HTTPDigestAuth
 # APPLICATION METADATA & CONSTANTS
 # ------------------------------------------------------------------------------
 APP_NAME = "Hikvision Telegram Guard"
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.1"
 APP_SUBTITLE = "Multi-Camera NVR Hub & Live Matrix"
 
 # ------------------------------------------------------------------------------
@@ -1489,7 +1489,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
 
     <div class="sidebar-footer">
       <div>Hosterbyte Surveillance Hub</div>
-      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.3.0 Live Matrix</div>
+      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.3.1 Multi-Source</div>
     </div>
   </aside>
 
