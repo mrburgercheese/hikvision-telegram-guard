@@ -9,12 +9,24 @@ Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR H
 
 ---
 
-## 📸 Screenshots & Antarmuka
+## 📸 Screenshots & Antarmuka Sistem
 
-### 🖥️ 1. Web Panel Dashboard Monitor (Retro Light Neo-Brutalism)
-![Web Dashboard Monitor](docs/screenshots/web-dashboard.jpg)
+### 🖥️ 1. Monitor Realtime Multi-Kamera (Live MJPEG Stream)
+![Monitor Realtime Multi-Kamera](docs/screenshots/dashboard.png)
 
-### 📲 2. Notifikasi Alert Deteksi Gerakan di Telegram
+### ⚙️ 2. Pengaturan Parameter NVR & Pemetaan Channel (2-Kolom Rapi)
+![Pengaturan Multi-Kamera dan NVR](docs/screenshots/settings.png)
+
+### 🖼️ 3. Galeri Event Snapshot & Filter Multi-Kamera
+![Galeri Event Snapshot](docs/screenshots/gallery.png)
+
+### 📜 4. Live Terminal Logs (Color-Coded Stream)
+![Live Terminal Logs](docs/screenshots/logs.png)
+
+### 🔐 5. Strict PIN Lock Screen & Otentikasi Sesi
+![PIN Lock Screen](docs/screenshots/pin-lock.png)
+
+### 📲 6. Notifikasi Alert Deteksi Gerakan di Telegram
 ![Telegram Alert Notification](docs/screenshots/telegram-alert.jpg)
 
 ---

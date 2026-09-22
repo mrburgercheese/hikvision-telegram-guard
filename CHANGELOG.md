@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.1.1] - 2026-09-22
+
+### 🔐 Security & Access Control
+- **Strict Backend PIN Gate**:
+  - Protected all backend API endpoints (`/api/stats`, `/api/logs`, `/api/config`, `/api/gallery`, `/api/sync-nvr`, `/api/test-telegram`, `/api/live-stream`, `/api/camera-snapshot`) and static snapshot files with PIN authentication (`X-Web-PIN` header or `?pin=` parameter).
+  - Unauthorized requests are rejected with `401 Unauthorized`.
+- **Frontend Interaction Locking**:
+  - Added `app-locked` state with 10px backdrop blur and disabled pointer interactions behind the PIN modal.
+  - Added central `authFetch()` client wrapper that automatically locks the panel if a 401 response is received.
+  - Added **"🔒 Kunci Panel"** manual lock / logout button in the sidebar navigation.
+
+### 🎨 UI & Documentation Enhancements
+- **Balanced 2-Column Settings Layout**: Restructured the Settings tab into a clean two-column grid separating core system/Telegram parameters from the Multi-Camera channel mapping cards.
+- **Visual Channel Indicators**: Channel cards now feature active green / muted slate border indicators (`ch-active` / `ch-muted`) with live label updates.
+- **Sidebar Footer Versioning**: Updated sidebar footer brand to `v1.1.0 Multi-Cam`.
+- **Real Production Screenshots**: Replaced mockups with actual high-resolution screenshots of the live system in `README.md`.
+
+---
+
 ## [1.1.0] - 2026-09-22
 
 ### 🚀 Added
