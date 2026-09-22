@@ -328,41 +328,46 @@ def get_channel_snapshot(channel_id):
     ch_str = str(channel_id)
     ch_info = cfg.get("channels", {}).get(ch_str)
     
-    # Try Direct Camera IP first with multi-stream fallback
+    # 1. Try Direct Camera IP with multi-stream fallback
     if ch_info and ch_info.get("ip"):
         cam_ip = ch_info["ip"]
         cam_user = cfg.get("nvr_user", "admin")
         cam_pass = cfg.get("nvr_pass", "Bestari008")
         
-        # Priority order: configured main_stream -> configured sub_stream -> 101 -> 102 -> 1 -> 2
         streams_to_try = [
-            ch_info.get("main_stream", "101"),
             ch_info.get("sub_stream", "102"),
+            ch_info.get("main_stream", "101"),
             "102",
             "101",
             "1",
             "2"
         ]
-        # Deduplicate while preserving order
         streams_to_try = list(dict.fromkeys(streams_to_try))
 
         for st in streams_to_try:
             url = f"http://{cam_ip}/ISAPI/Streaming/channels/{st}/picture"
             try:
-                r = requests.get(url, auth=HTTPDigestAuth(cam_user, cam_pass), timeout=3.5)
+                r = requests.get(url, auth=HTTPDigestAuth(cam_user, cam_pass), timeout=1.8)
                 if r.status_code == 200 and len(r.content) > 1000:
                     return r.content
             except Exception:
                 pass
 
-    # Fallback to NVR channel streaming endpoints
+    # 2. Try NVR StreamingProxy (Hardware Decoded, Ultra Fast & Stable)
     nvr_ip = cfg.get("nvr_ip", "192.168.99.10")
     nvr_user = cfg.get("nvr_user", "admin")
     nvr_pass = cfg.get("nvr_pass", "Bestari008")
-    for nvr_st in [f"{ch_str}01", f"{ch_str}02", ch_str, f"3{ch_str}01", f"3{ch_str}"]:
-        nvr_url = f"http://{nvr_ip}/ISAPI/Streaming/channels/{nvr_st}/picture"
+    
+    nvr_endpoints = [
+        f"http://{nvr_ip}/ISAPI/ContentMgmt/StreamingProxy/channels/{ch_str}01/picture",
+        f"http://{nvr_ip}/ISAPI/ContentMgmt/StreamingProxy/channels/{ch_str}02/picture",
+        f"http://{nvr_ip}/ISAPI/Streaming/channels/{ch_str}01/picture",
+        f"http://{nvr_ip}/ISAPI/Streaming/channels/{ch_str}02/picture",
+        f"http://{nvr_ip}/ISAPI/Streaming/channels/{ch_str}/picture"
+    ]
+    for nvr_url in nvr_endpoints:
         try:
-            r = requests.get(nvr_url, auth=HTTPDigestAuth(nvr_user, nvr_pass), timeout=3)
+            r = requests.get(nvr_url, auth=HTTPDigestAuth(nvr_user, nvr_pass), timeout=1.8)
             if r.status_code == 200 and len(r.content) > 1000:
                 return r.content
         except Exception:
@@ -2427,41 +2432,36 @@ class CCTVGuardHTTPHandler(BaseHTTPRequestHandler):
                 self.end_headers()
             return
 
-        # 6. Live Video MJPEG Stream (Specific Channel, Sub-Stream ~8 FPS)
+        # 6. Live Video MJPEG Stream (Specific Channel, Multi-Source Fallback)
         elif path == "/api/live-stream":
             channel = query.get("channel", ["2"])[0]
-            cfg = get_config()
-            ch_info = cfg.get("channels", {}).get(channel)
             
-            # Determine target stream URL
-            if ch_info and ch_info.get("ip"):
-                cam_url = f"http://{ch_info['ip']}/ISAPI/Streaming/channels/{ch_info.get('sub_stream', '102')}/picture"
-                auth = HTTPDigestAuth(cfg.get("nvr_user", "admin"), cfg.get("nvr_pass", "Bestari008"))
-            else:
-                cam_url = f"http://{cfg.get('nvr_ip', '192.168.99.10')}/ISAPI/Streaming/channels/{channel}02/picture"
-                auth = HTTPDigestAuth(cfg.get("nvr_user", "admin"), cfg.get("nvr_pass", "Bestari008"))
-
             self.send_response(200)
             self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
-            self.send_header("Cache-Control", "no-cache, private")
+            self.send_header("Cache-Control", "no-cache, private, no-store, must-revalidate")
             self.send_header("Pragma", "no-cache")
             self.end_headers()
 
+            last_good_frame = None
             try:
                 while True:
-                    try:
-                        r = requests.get(cam_url, auth=auth, timeout=2.5)
-                        if r.status_code == 200 and len(r.content) > 500:
-                            frame = r.content
+                    frame = get_channel_snapshot(channel)
+                    if frame and len(frame) > 1000:
+                        last_good_frame = frame
+                    elif last_good_frame:
+                        frame = last_good_frame
+
+                    if frame:
+                        try:
                             self.wfile.write(b"--frame\r\n")
                             self.wfile.write(b"Content-Type: image/jpeg\r\n")
                             self.wfile.write(f"Content-Length: {len(frame)}\r\n\r\n".encode())
                             self.wfile.write(frame)
                             self.wfile.write(b"\r\n")
-                    except Exception:
-                        pass
-                    time.sleep(0.12)  # ~8 FPS frame delay
-            except (BrokenPipeError, ConnectionResetError):
+                        except (BrokenPipeError, ConnectionResetError):
+                            break
+                    time.sleep(0.25)  # ~4 FPS smooth update rate
+            except Exception:
                 pass
             return
 
