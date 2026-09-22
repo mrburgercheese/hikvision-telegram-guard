@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Implemented automatic fallback cascade in `get_channel_snapshot()`: `[main_stream -> sub_stream -> 102 -> 101 -> 1 -> 2 -> NVR Channels]`.
   - Resolved `HTTP 503 Service Unavailable` on IP Cameras where Main-Stream snapshot capture (`/ISAPI/Streaming/channels/101/picture`) is restricted by firmware, automatically switching to Sub-Stream `102` (171 KB JPEG) in milliseconds.
   - Verified 100% snapshot delivery across all channels: Ch 1 (Lorong - 83 KB), Ch 2 (Jalan Utara - 168 KB), and Ch 3 (Jalan Selatan - 171 KB).
+- **Dynamic Application Branding & Versioning in Telegram Alerts**:
+  - Replaced static footer text with dynamic caption footer `🤖 {app_name} v{APP_VERSION}` (default: `🤖 Hikvision Telegram Guard v1.1.2`).
+  - Added configurable `app_name` parameter in `config.json` and synchronized Web UI sidebar footer version to `v1.1.2 Multi-Cam`.
 
 ---
 

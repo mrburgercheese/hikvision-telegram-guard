@@ -36,6 +36,13 @@ import requests
 from requests.auth import HTTPDigestAuth
 
 # ------------------------------------------------------------------------------
+# APPLICATION METADATA & CONSTANTS
+# ------------------------------------------------------------------------------
+APP_NAME = "Hikvision Telegram Guard"
+APP_VERSION = "1.1.2"
+APP_SUBTITLE = "Multi-Camera NVR Hub"
+
+# ------------------------------------------------------------------------------
 # DIRECTORY & DEFAULT MULTI-CHANNEL CONFIGURATION
 # ------------------------------------------------------------------------------
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -45,6 +52,7 @@ CONFIG_FILE = BASE_DIR / "config.json"
 SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_CONFIG = {
+    "app_name": "Hikvision Telegram Guard",
     "nvr_ip": "192.168.1.10",
     "nvr_user": "admin",
     "nvr_pass": "Password123#",
@@ -436,6 +444,7 @@ def trigger_channel_alert(channel_id, event_type="VMD", details="Motion Detected
         return
 
     wib_time = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S WIB")
+    app_title = cfg.get("app_name", APP_NAME)
     caption = (
         f"🚨 <b>DETEKSI GERAKAN CCTV KOS</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -445,7 +454,7 @@ def trigger_channel_alert(channel_id, event_type="VMD", details="Motion Detected
         f"⏰ <b>Waktu</b>: <code>{wib_time}</code>\n"
         f"🛡️ <b>Anti-Spam Jeda</b>: {cooldown} Detik\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🤖 <i>CCTV Guard Multi-Cam Engine</i>"
+        f"🤖 <i>{app_title} v{APP_VERSION}</i>"
     )
 
     sent_success = False
@@ -1175,7 +1184,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
 
     <div class="sidebar-footer">
       <div>Hosterbyte Surveillance Hub</div>
-      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.1.0 Multi-Cam</div>
+      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.1.2 Multi-Cam</div>
     </div>
   </aside>
 
