@@ -600,7 +600,7 @@ def trigger_channel_alert(channel_id, event_type="VMD", details="Motion Detected
 # ------------------------------------------------------------------------------
 # CENTRAL NVR ISAPI EVENT STREAM LISTENER (LONG-POLLING DAEMON)
 # ------------------------------------------------------------------------------
-def process_nvr_event_xml(xml_bytes):
+def process_nvr_event_xml(xml_bytes, default_channel=None):
     try:
         idx = xml_bytes.find(b"<EventNotificationAlert")
         if idx == -1:
@@ -621,24 +621,99 @@ def process_nvr_event_xml(xml_bytes):
 
         event_type = (get_tag("eventType") or "").lower()
         event_state = (get_tag("eventState") or "").lower()
-        channel_id = get_tag("channelID") or get_tag("dynVideoInputChannelID") or get_tag("videoInputChannelID")
+        
+        # Robust Channel ID resolution
+        ip_addr = get_tag("ipAddress")
+        channel_id = get_tag("dynVideoInputChannelID") or get_tag("videoInputChannelID")
+        
+        if not channel_id or str(channel_id).strip() in ["0", ""]:
+            if default_channel:
+                channel_id = str(default_channel)
+            elif ip_addr:
+                cfg = get_config()
+                for ch_k, ch_v in cfg.get("channels", {}).items():
+                    if ch_v.get("ip") == ip_addr:
+                        channel_id = ch_k
+                        break
+            if not channel_id or str(channel_id).strip() in ["0", ""]:
+                cid = get_tag("channelID")
+                if cid and str(cid).strip() not in ["0", ""]:
+                    channel_id = cid
+
         event_desc = get_tag("eventDescription") or event_type
 
-        if not channel_id:
+        if not channel_id or str(channel_id).strip() in ["0", ""]:
             return
 
-        valid_events = ["vmd", "motion", "linedetection", "fielddetection", "human", "regionentrance"]
+        if event_state in ["inactive", "stop"]:
+            return
+
+        valid_events = ["vmd", "motion", "linedetection", "fielddetection", "human", "regionentrance", "regionexiting", "tamper", "shelter", "intrusion"]
         if any(v in event_type for v in valid_events):
-            if event_state in ["active", "", None]:
-                threading.Thread(
-                    target=trigger_channel_alert,
-                    args=(str(channel_id), event_type.upper(), event_desc),
-                    daemon=True
-                ).start()
+            logger.info(f"[ISAPI-EVENT] 📡 Diterima event '{event_type.upper()}' (State: {event_state or 'active'}) untuk Channel {channel_id} ({event_desc})")
+            threading.Thread(
+                target=trigger_channel_alert,
+                args=(str(channel_id), event_type.upper(), event_desc),
+                daemon=True
+            ).start()
     except Exception as e:
         logger.debug(f"XML parse error: {e}")
 
+def camera_listener_worker(channel_id, cam_ip):
+    """Direct stream listener for individual IP Camera"""
+    logger.info(f"📡 Membuka direct event stream ke Kamera Ch {channel_id} ({cam_ip})...")
+    while True:
+        cfg = get_config()
+        ch_info = cfg.get("channels", {}).get(str(channel_id), {})
+        if not ch_info.get("enabled", True) or ch_info.get("ip") != cam_ip:
+            break
+        
+        nvr_user = cfg.get("nvr_user", "admin")
+        nvr_pass = cfg.get("nvr_pass", "Bestari008")
+        stream_url = f"http://{cam_ip}/ISAPI/Event/notification/alertStream"
+        auth = HTTPDigestAuth(nvr_user, nvr_pass)
+        
+        try:
+            with requests.get(stream_url, auth=auth, stream=True, timeout=(10, 60)) as r:
+                if r.status_code == 200:
+                    buffer = b""
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:
+                            buffer += chunk
+                            while b"</EventNotificationAlert>" in buffer:
+                                end_pos = buffer.find(b"</EventNotificationAlert>") + len(b"</EventNotificationAlert>")
+                                event_xml = buffer[:end_pos]
+                                buffer = buffer[end_pos:]
+                                process_nvr_event_xml(event_xml, default_channel=str(channel_id))
+                else:
+                    time.sleep(10)
+        except requests.exceptions.Timeout:
+            continue
+        except Exception:
+            time.sleep(8)
+
 def nvr_listener_thread():
+    active_cam_listeners = {}
+    
+    def cam_manager_loop():
+        while True:
+            try:
+                cfg = get_config()
+                channels = cfg.get("channels", {})
+                for ch_id, ch_info in channels.items():
+                    ip = ch_info.get("ip")
+                    if ip and ch_info.get("enabled", True):
+                        key = (ch_id, ip)
+                        if key not in active_cam_listeners or not active_cam_listeners[key].is_alive():
+                            t = threading.Thread(target=camera_listener_worker, args=(ch_id, ip), daemon=True, name=f"CamListener-{ch_id}")
+                            t.start()
+                            active_cam_listeners[key] = t
+            except Exception:
+                pass
+            time.sleep(15)
+
+    threading.Thread(target=cam_manager_loop, daemon=True, name="CamListenerManager").start()
+
     while True:
         cfg = get_config()
         nvr_ip = cfg.get("nvr_ip", "192.168.99.10")
