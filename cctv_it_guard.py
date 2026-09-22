@@ -320,31 +320,47 @@ def get_channel_snapshot(channel_id):
     ch_str = str(channel_id)
     ch_info = cfg.get("channels", {}).get(ch_str)
     
-    # Try Direct Camera IP first if configured
+    # Try Direct Camera IP first with multi-stream fallback
     if ch_info and ch_info.get("ip"):
         cam_ip = ch_info["ip"]
         cam_user = cfg.get("nvr_user", "admin")
         cam_pass = cfg.get("nvr_pass", "Bestari008")
-        url = f"http://{cam_ip}/ISAPI/Streaming/channels/{ch_info.get('main_stream', '101')}/picture"
+        
+        # Priority order: configured main_stream -> configured sub_stream -> 101 -> 102 -> 1 -> 2
+        streams_to_try = [
+            ch_info.get("main_stream", "101"),
+            ch_info.get("sub_stream", "102"),
+            "102",
+            "101",
+            "1",
+            "2"
+        ]
+        # Deduplicate while preserving order
+        streams_to_try = list(dict.fromkeys(streams_to_try))
+
+        for st in streams_to_try:
+            url = f"http://{cam_ip}/ISAPI/Streaming/channels/{st}/picture"
+            try:
+                r = requests.get(url, auth=HTTPDigestAuth(cam_user, cam_pass), timeout=3.5)
+                if r.status_code == 200 and len(r.content) > 1000:
+                    return r.content
+            except Exception:
+                pass
+
+    # Fallback to NVR channel streaming endpoints
+    nvr_ip = cfg.get("nvr_ip", "192.168.99.10")
+    nvr_user = cfg.get("nvr_user", "admin")
+    nvr_pass = cfg.get("nvr_pass", "Bestari008")
+    for nvr_st in [f"{ch_str}01", f"{ch_str}02", ch_str, f"3{ch_str}01", f"3{ch_str}"]:
+        nvr_url = f"http://{nvr_ip}/ISAPI/Streaming/channels/{nvr_st}/picture"
         try:
-            r = requests.get(url, auth=HTTPDigestAuth(cam_user, cam_pass), timeout=4)
+            r = requests.get(nvr_url, auth=HTTPDigestAuth(nvr_user, nvr_pass), timeout=3)
             if r.status_code == 200 and len(r.content) > 1000:
                 return r.content
         except Exception:
             pass
 
-    # Fallback to NVR channel streaming endpoint
-    nvr_ip = cfg.get("nvr_ip", "192.168.99.10")
-    nvr_user = cfg.get("nvr_user", "admin")
-    nvr_pass = cfg.get("nvr_pass", "Bestari008")
-    nvr_url = f"http://{nvr_ip}/ISAPI/Streaming/channels/{ch_str}01/picture"
-    try:
-        r = requests.get(nvr_url, auth=HTTPDigestAuth(nvr_user, nvr_pass), timeout=5)
-        if r.status_code == 200 and len(r.content) > 1000:
-            return r.content
-        logger.warning(f"Gagal mengambil snapshot untuk Ch {ch_str} (NVR HTTP {r.status_code})")
-    except Exception as e:
-        logger.error(f"Exception snapshot Ch {ch_str}: {e}")
+    logger.warning(f"Gagal mengambil snapshot untuk Ch {ch_str} (Direct IP & NVR unavailable)")
     return None
 
 def trigger_channel_alert(channel_id, event_type="VMD", details="Motion Detected"):
