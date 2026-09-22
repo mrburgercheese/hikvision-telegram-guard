@@ -39,8 +39,8 @@ from requests.auth import HTTPDigestAuth
 # APPLICATION METADATA & CONSTANTS
 # ------------------------------------------------------------------------------
 APP_NAME = "Hikvision Telegram Guard"
-APP_VERSION = "1.1.2"
-APP_SUBTITLE = "Multi-Camera NVR Hub"
+APP_VERSION = "1.2.0"
+APP_SUBTITLE = "Multi-Camera NVR Hub & Live Matrix"
 
 # ------------------------------------------------------------------------------
 # DIRECTORY & DEFAULT MULTI-CHANNEL CONFIGURATION
@@ -976,6 +976,84 @@ INDEX_HTML = r"""<!DOCTYPE html>
 
     .gallery-date { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 600; }
 
+    /* LIVE VIEW MATRIX GRID */
+    .liveview-grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .grid-layout-1x1 { grid-template-columns: 1fr; }
+    .grid-layout-1x2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-layout-1x3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-layout-2x2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-layout-auto { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+
+    .matrix-card {
+      background: var(--surface);
+      border: 3px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .matrix-header {
+      padding: 10px 14px;
+      background: #F8FAFC;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .matrix-viewport {
+      background: #0F172A;
+      width: 100%;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .matrix-viewport img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .matrix-footer {
+      padding: 8px 14px;
+      background: #F1F5F9;
+      border-top: 2px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+    }
+
+    .layout-btn {
+      background: #FFF;
+      border: none;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-right: 1.5px solid var(--border);
+      transition: all 0.1s ease;
+    }
+    .layout-btn:last-child { border-right: none; }
+    .layout-btn:hover { background: #F1F5F9; }
+    .layout-btn.active {
+      background: var(--primary);
+      color: #000;
+    }
+
     .form-group { margin-bottom: 18px; }
     .form-label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; }
 
@@ -1165,6 +1243,9 @@ INDEX_HTML = r"""<!DOCTYPE html>
       <li class="nav-item active" onclick="switchTab('tab-dashboard')">
         <span>📊</span> <span>Dashboard</span>
       </li>
+      <li class="nav-item" onclick="switchTab('tab-liveview')">
+        <span>📺</span> <span>Live View Matrix</span>
+      </li>
       <li class="nav-item" onclick="switchTab('tab-logs')">
         <span>📜</span> <span>Live Logs</span>
       </li>
@@ -1184,7 +1265,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
 
     <div class="sidebar-footer">
       <div>Hosterbyte Surveillance Hub</div>
-      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.1.2 Multi-Cam</div>
+      <div class="mono" style="margin-top: 4px; font-weight: 800; color: #0F172A;">v1.2.0 Live Matrix</div>
     </div>
   </aside>
 
@@ -1256,6 +1337,34 @@ INDEX_HTML = r"""<!DOCTYPE html>
           </div>
           <img id="cameraStreamImg" src="/api/live-stream?channel=2" alt="Live Camera Stream" onerror="handleStreamError(this)">
         </div>
+      </div>
+    </section>
+
+    <!-- TAB: LIVE VIEW MATRIX -->
+    <section id="tab-liveview" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h2>📺 Live View Multi-Kamera Matrix</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Monitoring streaming simultan realtime dengan pemilihan channel kustom & tata letak grid</p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <!-- LAYOUT SWITCHER -->
+          <div style="display: flex; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; background: #FFF; box-shadow: var(--shadow-sm);">
+            <button id="btnLayout_1x1" class="layout-btn" title="1 Kamera (Fokus Penuh)" onclick="setLiveViewLayout('1x1')">🔲 1x1</button>
+            <button id="btnLayout_1x2" class="layout-btn" title="2 Kamera" onclick="setLiveViewLayout('1x2')">◫ 1x2</button>
+            <button id="btnLayout_1x3" class="layout-btn" title="3 Kamera" onclick="setLiveViewLayout('1x3')">▤ 1x3</button>
+            <button id="btnLayout_2x2" class="layout-btn active" title="4 Kamera (Matrix 2x2)" onclick="setLiveViewLayout('2x2')">⊞ 2x2</button>
+            <button id="btnLayout_auto" class="layout-btn" title="Semua Kamera (Auto Grid)" onclick="setLiveViewLayout('auto')">▦ Auto</button>
+          </div>
+          <button class="neo-btn neo-btn-outline" style="padding: 8px 12px; font-size: 0.8rem;" onclick="refreshLiveViewStreams()">🔄 Reload Semua</button>
+          <button class="neo-btn neo-btn-outline" id="btnToggleMatrixPause" style="padding: 8px 12px; font-size: 0.8rem;" onclick="toggleLiveViewPause()">⏸️ Pause</button>
+          <button class="neo-btn neo-btn-blue" style="padding: 8px 14px; font-size: 0.8rem;" onclick="toggleMatrixFullscreen()">🖥️ Fullscreen Matrix</button>
+        </div>
+      </div>
+
+      <!-- MATRIX GRID CONTAINER -->
+      <div id="liveviewGridContainer" class="liveview-grid grid-layout-2x2">
+        <!-- Dynamic Camera Matrix Cards Injected by JS -->
       </div>
     </section>
 
@@ -1568,14 +1677,23 @@ INDEX_HTML = r"""<!DOCTYPE html>
       document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
       document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
       
-      document.getElementById(tabId).classList.add("active");
-      event.currentTarget.classList.add("active");
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.add("active");
+      if (window.event && window.event.currentTarget && window.event.currentTarget.classList) {
+        window.event.currentTarget.classList.add("active");
+      }
 
       const streamImg = document.getElementById("cameraStreamImg");
       if (tabId !== "tab-dashboard") {
-        streamImg.src = "";
+        if (streamImg) streamImg.src = "";
       } else {
         refreshStream();
+      }
+
+      if (tabId === "tab-liveview") {
+        startAllLiveViewStreams();
+      } else {
+        stopAllLiveViewStreams();
       }
 
       if (tabId === "tab-logs") fetchLogs();
@@ -1587,11 +1705,18 @@ INDEX_HTML = r"""<!DOCTYPE html>
       isTabVisible = !document.hidden;
       const streamImg = document.getElementById("cameraStreamImg");
       const activeTab = document.querySelector(".tab-content.active") ? document.querySelector(".tab-content.active").id : "";
+      
       if (activeTab === "tab-dashboard") {
         if (isTabVisible && activeStreamMode === "live" && currentAuthPin) {
           streamImg.src = `/api/live-stream?channel=${activeChannel}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
         } else {
-          streamImg.src = "";
+          if (streamImg) streamImg.src = "";
+        }
+      } else if (activeTab === "tab-liveview") {
+        if (isTabVisible && currentAuthPin && !isLiveViewPaused) {
+          startAllLiveViewStreams();
+        } else {
+          stopAllLiveViewStreams();
         }
       }
     });
@@ -1645,6 +1770,199 @@ INDEX_HTML = r"""<!DOCTYPE html>
           refreshStream();
         }
       }, 1500);
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* LIVE VIEW MATRIX CONTROLLER                                                */
+    /* -------------------------------------------------------------------------- */
+    let currentLiveViewLayout = localStorage.getItem("cctv_liveview_layout") || "2x2";
+    let liveViewSlots = JSON.parse(localStorage.getItem("cctv_liveview_slots") || '["1", "2", "3", "none"]');
+    let isLiveViewPaused = false;
+
+    function setLiveViewLayout(layout) {
+      currentLiveViewLayout = layout;
+      localStorage.setItem("cctv_liveview_layout", layout);
+      
+      document.querySelectorAll(".layout-btn").forEach(b => b.classList.remove("active"));
+      const btn = document.getElementById("btnLayout_" + layout);
+      if (btn) btn.classList.add("active");
+
+      renderLiveViewGrid();
+    }
+
+    function renderLiveViewGrid() {
+      const container = document.getElementById("liveviewGridContainer");
+      if (!container) return;
+
+      container.className = `liveview-grid grid-layout-${currentLiveViewLayout}`;
+
+      // Update layout button active state
+      document.querySelectorAll(".layout-btn").forEach(b => b.classList.remove("active"));
+      const activeBtn = document.getElementById("btnLayout_" + currentLiveViewLayout);
+      if (activeBtn) activeBtn.classList.add("active");
+
+      // Calculate slot count
+      let count = 4;
+      if (currentLiveViewLayout === "1x1") count = 1;
+      else if (currentLiveViewLayout === "1x2") count = 2;
+      else if (currentLiveViewLayout === "1x3") count = 3;
+      else if (currentLiveViewLayout === "2x2") count = 4;
+      else if (currentLiveViewLayout === "auto") count = Object.keys(globalChannels).length || 3;
+
+      const chKeys = Object.keys(globalChannels);
+      while (liveViewSlots.length < count) {
+        const nextCh = chKeys[liveViewSlots.length] || "none";
+        liveViewSlots.push(nextCh);
+      }
+
+      let html = "";
+      for (let i = 0; i < count; i++) {
+        let chId = liveViewSlots[i];
+        if (currentLiveViewLayout === "auto" && chKeys[i]) {
+          chId = chKeys[i];
+        }
+
+        const chInfo = globalChannels[chId];
+        const isAssigned = chId && chId !== "none" && chInfo;
+        const camTitle = isAssigned ? `${chInfo.name} (Ch ${chId})` : "Slot Kamera Kosong";
+        const camLocation = isAssigned ? (chInfo.location || "Area Kamera") : "-";
+        const camIp = isAssigned ? (chInfo.ip || "Via NVR Hub") : "-";
+
+        let selectOptions = `<option value="none" ${chId==="none"?"selected":""}>⏸️ (Kosong / Nonaktif)</option>`;
+        for (let k of chKeys) {
+          const c = globalChannels[k];
+          selectOptions += `<option value="${k}" ${k===chId?"selected":""}>📹 Ch ${k}: ${c.name}</option>`;
+        }
+
+        const isStreamActive = isAssigned && !isLiveViewPaused && currentAuthPin;
+        const streamUrl = isStreamActive ? `/api/live-stream?channel=${chId}&pin=${encodeURIComponent(currentAuthPin)}&t=${Date.now()}` : "";
+
+        html += `
+          <div class="matrix-card" id="matrixCard_${i}">
+            <div class="matrix-header">
+              <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 160px;">
+                <span class="neo-badge ${isAssigned ? 'badge-live' : 'badge-dead'}" id="matrixBadge_${i}" style="font-size: 0.72rem; padding: 2px 6px;">
+                  ${isAssigned ? '● LIVE' : '⏸️ OFF'}
+                </span>
+                <select class="form-select" style="padding: 4px 8px; font-size: 0.78rem; font-weight: 700; width: 100%; max-width: 220px;" onchange="changeSlotChannel(${i}, this.value)">
+                  ${selectOptions}
+                </select>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                ${isAssigned ? `<button class="neo-btn neo-btn-outline" style="padding: 4px 8px; font-size: 0.75rem;" title="Ambil Snapshot HD" onclick="captureSlotSnapshot('${chId}')">📷</button>` : ''}
+                ${isAssigned ? `<button class="neo-btn neo-btn-outline" style="padding: 4px 8px; font-size: 0.75rem;" title="Reload Stream Slot" onclick="reloadSlotStream(${i})">🔄</button>` : ''}
+                <button class="neo-btn neo-btn-outline" style="padding: 4px 8px; font-size: 0.75rem;" title="Fullscreen Slot" onclick="toggleSlotFullscreen(${i})">⛶</button>
+              </div>
+            </div>
+
+            <div class="matrix-viewport" id="matrixViewport_${i}">
+              <div class="stream-overlay-badge" style="top: 8px; left: 8px;">
+                <span class="neo-badge" style="background: rgba(0,0,0,0.75); color: #FFF; border-color: #FFF; font-size: 0.7rem; padding: 2px 6px;">
+                  <span class="pulse-dot" style="width: 6px; height: 6px;"></span> <span>MJPEG ~8 FPS</span>
+                </span>
+              </div>
+              ${isAssigned ? `
+                <img id="matrixImg_${i}" class="matrix-stream-img" src="${streamUrl}" alt="${camTitle}" onerror="handleMatrixImgError(${i})">
+              ` : `
+                <div style="color: #64748B; text-align: center; padding: 20px; font-size: 0.85rem;">
+                  <div style="font-size: 2rem; margin-bottom: 6px;">📺</div>
+                  <div style="font-weight: 700;">Slot Tidak Aktif</div>
+                  <div style="font-size: 0.75rem; color: #475569; margin-top: 4px;">Pilih kamera pada dropdown di atas</div>
+                </div>
+              `}
+            </div>
+
+            <div class="matrix-footer">
+              <div class="mono" style="color: #475569; font-weight: 600;">📍 ${camLocation}</div>
+              <div class="mono" style="color: #64748B;">IP: ${camIp}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function changeSlotChannel(slotIdx, chId) {
+      liveViewSlots[slotIdx] = chId;
+      localStorage.setItem("cctv_liveview_slots", JSON.stringify(liveViewSlots));
+      renderLiveViewGrid();
+      showToast(`Slot ${slotIdx + 1} dialihkan ke: ${chId === "none" ? "Nonaktif" : "Ch " + chId}`, "info");
+    }
+
+    function reloadSlotStream(slotIdx) {
+      const chId = liveViewSlots[slotIdx];
+      const img = document.getElementById(`matrixImg_${slotIdx}`);
+      if (img && chId && chId !== "none" && currentAuthPin) {
+        img.src = `/api/live-stream?channel=${chId}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
+      }
+    }
+
+    function handleMatrixImgError(slotIdx) {
+      if (!currentAuthPin || isLiveViewPaused) return;
+      setTimeout(() => {
+        reloadSlotStream(slotIdx);
+      }, 2000);
+    }
+
+    function refreshLiveViewStreams() {
+      if (!currentAuthPin) return;
+      renderLiveViewGrid();
+      showToast("🔄 Seluruh stream matrix dimuat ulang", "info");
+    }
+
+    function stopAllLiveViewStreams() {
+      document.querySelectorAll(".matrix-stream-img").forEach(img => {
+        img.src = "";
+      });
+    }
+
+    function startAllLiveViewStreams() {
+      if (!currentAuthPin || isLiveViewPaused) return;
+      renderLiveViewGrid();
+    }
+
+    function toggleLiveViewPause() {
+      const btn = document.getElementById("btnToggleMatrixPause");
+      isLiveViewPaused = !isLiveViewPaused;
+      if (isLiveViewPaused) {
+        stopAllLiveViewStreams();
+        if (btn) btn.innerHTML = "▶️ Resume";
+        showToast("⏸️ Streaming matrix dijeda", "warn");
+      } else {
+        startAllLiveViewStreams();
+        if (btn) btn.innerHTML = "⏸️ Pause";
+        showToast("▶️ Streaming matrix dilanjutkan", "success");
+      }
+    }
+
+    function toggleSlotFullscreen(slotIdx) {
+      const card = document.getElementById(`matrixCard_${slotIdx}`);
+      if (!card) return;
+      if (!document.fullscreenElement) {
+        if (card.requestFullscreen) card.requestFullscreen();
+        else if (card.webkitRequestFullscreen) card.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    function toggleMatrixFullscreen() {
+      const grid = document.getElementById("liveviewGridContainer");
+      if (!grid) return;
+      if (!document.fullscreenElement) {
+        if (grid.requestFullscreen) grid.requestFullscreen();
+        else if (grid.webkitRequestFullscreen) grid.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    function captureSlotSnapshot(chId) {
+      if (!chId || chId === "none" || !currentAuthPin) return;
+      showToast(`Mengambil snapshot Ch ${chId}...`, "info");
+      const url = `/api/camera-snapshot?channel=${chId}&pin=${encodeURIComponent(currentAuthPin)}&t=` + Date.now();
+      openModal(url, `Snapshot Realtime - Kamera Ch ${chId}`);
     }
 
     async function fetchStats() {

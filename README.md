@@ -1,16 +1,16 @@
 # 🛡️ CCTV Guard & Telegram Alert System (Multi-Camera NVR Hub)
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/Version-v1.1.2-blue.svg)](CHANGELOG.md)
-[![Last Updated](https://img.shields.io/badge/Last%20Updated-2026--09--22%2021%3A18%3A00%20WIB-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.2.0-blue.svg)](CHANGELOG.md)
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-2026--09--22%2022%3A05%3A00%20WIB-orange.svg)](CHANGELOG.md)
 [![Changelog](https://img.shields.io/badge/Changelog-Lihat%20Riwayat-success.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Architecture: Standalone](https://img.shields.io/badge/Architecture-Zero--Dependency%20Microservice-emerald.svg)]()
 [![UI: Neo-Brutalism](https://img.shields.io/badge/UI-Retro%20Light%20Neo--Brutalism-purple.svg)]()
 
-> 🕒 **Terakhir Diperbarui:** `22 September 2026, 21:18:00 WIB` | 🏷️ **Versi Aktif:** [`v1.1.2`](CHANGELOG.md) | 📜 [**Buka Catatan Perubahan (CHANGELOG.md)**](CHANGELOG.md)
+> 🕒 **Terakhir Diperbarui:** `22 September 2026, 22:05:00 WIB` | 🏷️ **Versi Aktif:** [`v1.2.0`](CHANGELOG.md) | 📜 [**Buka Catatan Perubahan (CHANGELOG.md)**](CHANGELOG.md)
 
-Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR Hikvision secara realtime, menangkap snapshot resolusi tinggi (Main-Stream 1080p) saat mendeteksi gerakan manusia/VMD (*Video Motion Detection*), mengirimkan peringatan otomatis ke Telegram, serta menyediakan **Web Panel Dashboard Monitor interaktif** bergaya **Retro Light (Soft Neo-Brutalism)**.
+Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR Hikvision secara realtime, menangkap snapshot resolusi tinggi (Main-Stream 1080p) saat mendeteksi gerakan manusia/VMD (*Video Motion Detection*), mengirimkan peringatan otomatis ke Telegram, serta menyediakan **Web Panel Dashboard Monitor & Live View Matrix interaktif** bergaya **Retro Light (Soft Neo-Brutalism)**.
 
 ---
 
@@ -39,6 +39,7 @@ Sebuah microservice mandiri berbasis Python 3 untuk memantau kamera IP dan NVR H
 ## 🌟 Fitur Utama
 
 - ⚡ **Zero-Latency Event Stream Listener**: Membuka persistent connection HTTP Digest ke Hikvision ISAPI `alertStream` NVR dengan kemampuan *auto-reconnect* tanpa henti.
+- 📺 **Live View Multi-Kamera Matrix**: Monitoring multi-stream simultan realtime dengan pilihan grid dinamis (`1x1`, `1x2`, `1x3`, `2x2 Matrix`, dan `Auto Grid`) serta kebebasan memilih channel per slot stream.
 - 🎛️ **Multi-Camera NVR Hub**: Memantau seluruh channel kamera (Ch 1 s/d Ch 16+) secara simultan melalui satu koneksi NVR terpusat.
 - 🔄 **1-Click Auto-Discovery & NVR Sync**: Otomatis mendeteksi dan menyinkronkan seluruh daftar kamera, nama asli, dan IP target langsung dari NVR Hikvision.
 - 🛡️ **Smart Independent Cooldown (Anti-Spam)**: Menyaring lonjakan deteksi agar tidak membombardir grup Telegram (5–180 detik, dihitung independen per channel).
@@ -167,6 +168,7 @@ Proyek ini mendokumentasikan setiap pembaruan secara transparan mengikuti format
 
 | Versi | Tanggal & Jam Rilis (WIB) | Highlight Pembaruan Sistem | Detail |
 | :--- | :--- | :--- | :---: |
+| [**`v1.2.0`**](CHANGELOG.md#120--2026-09-22-220500-wib) | 📅 `2026-09-22` &nbsp;🕒 `22:05:00 WIB` | **Live View Multi-Kamera Matrix**: Menu Live View interaktif dengan grid dinamis (1x1, 1x2, 1x3, 2x2, Auto) dan custom slot switcher. | [Buka ↗](CHANGELOG.md#120--2026-09-22-220500-wib) |
 | [**`v1.1.2`**](CHANGELOG.md#112--2026-09-22-211800-wib) | 📅 `2026-09-22` &nbsp;🕒 `21:18:00 WIB` | **Multi-Stream Snapshot Fallback**: Auto-fallback sub-stream (102) mengatasi error 503 kamera Ch 3. | [Buka ↗](CHANGELOG.md#112--2026-09-22-211800-wib) |
 | [**`v1.1.1`**](CHANGELOG.md#111--2026-09-22-210900-wib) | 📅 `2026-09-22` &nbsp;🕒 `21:09:00 WIB` | **Strict PIN Security & 2-Col UI**: Otentikasi API ketat, tombol 🔒 Kunci Panel, dan layout pengaturan rapi. | [Buka ↗](CHANGELOG.md#111--2026-09-22-210900-wib) |
 | [**`v1.1.0`**](CHANGELOG.md#110--2026-09-22-204400-wib) | 📅 `2026-09-22` &nbsp;🕒 `20:44:00 WIB` | **Universal Auto-Installer**: Skrip `install.sh`, auto-discovery NVR Hub, dan multi-kamera switcher. | [Buka ↗](CHANGELOG.md#110--2026-09-22-204400-wib) |

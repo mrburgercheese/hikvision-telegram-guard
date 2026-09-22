@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.2.0] — 2026-09-22 22:05:00 WIB
+
+### 🚀 Added & Enhanced
+- **Live View Multi-Kamera Matrix (`tab-liveview`)**:
+  - Dedicated Live View tab with custom multi-stream matrix monitoring.
+  - **Dynamic Layout Switcher**: Choose between `🔲 1x1 (Fokus Tunggal)`, `◫ 1x2 (2 Kamera)`, `▤ 1x3 (3 Kamera Horisontal)`, `⊞ 2x2 (4 Grid Matrix)`, dan `▦ Auto (Semua Kamera Terdaftar)`.
+  - **Custom Slot Channel Mapping**: Assign any camera to any matrix grid slot independently via interactive dropdowns, saved to `localStorage`.
+  - **Per-Tile Quick Actions**: Individual Fullscreen toggle (`⛶`), Live Snapshot Capture (`📷`), and individual Stream Reload (`🔄`).
+  - **Global Matrix Controls**: One-click `🔄 Reload Semua Stream`, `⏸️ Pause / Resume Semua`, and `🖥️ Fullscreen Matrix View` for security wall operations.
+- **Smart Bandwidth & Resource Management**:
+  - Auto-pause all active MJPEG matrix streams when navigating away from the Live View tab or when the browser tab is hidden (`visibilitychange`).
+  - Zero server/network footprint when the tab is inactive.
+
+---
+
 ## [1.1.2] — 2026-09-22 21:18:00 WIB
 
 ### 🐛 Fixed & Optimized
